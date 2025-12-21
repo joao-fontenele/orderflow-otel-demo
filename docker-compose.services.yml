@@ -1,0 +1,91 @@
+services:
+  migrate:
+    build:
+      context: .
+      args:
+        SERVICE: migrate
+    environment:
+      POSTGRES_URL: postgres://orderflow:orderflow@postgres:5432/orderflow?sslmode=disable
+      MIGRATIONS_PATH: file:///app/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["up"]
+
+  gateway:
+    build:
+      context: .
+      args:
+        SERVICE: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      ORDERS_SERVICE_URL: http://orders:8081
+      INVENTORY_SERVICE_URL: http://inventory:8082
+    depends_on:
+      - orders
+      - inventory
+
+  orders:
+    build:
+      context: .
+      args:
+        SERVICE: orders
+    environment:
+      PORT: "8081"
+      POSTGRES_URL: postgres://orderflow:orderflow@postgres:5432/orderflow?sslmode=disable
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  inventory:
+    build:
+      context: .
+      args:
+        SERVICE: inventory
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: "8082"
+      POSTGRES_URL: postgres://orderflow:orderflow@postgres:5432/orderflow?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  email:
+    build:
+      context: .
+      args:
+        SERVICE: email
+    environment:
+      PORT: "8084"
+
+  worker:
+    build:
+      context: .
+      args:
+        SERVICE: worker
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      EMAIL_SERVICE_URL: http://email:8084
+      ORDERS_SERVICE_URL: http://orders:8081
+      INVENTORY_SERVICE_URL: http://inventory:8082
+    depends_on:
+      kafka:
+        condition: service_healthy
+      email:
+        condition: service_started
+      orders:
+        condition: service_started
+      inventory:
+        condition: service_started
