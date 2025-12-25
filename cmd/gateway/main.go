@@ -10,10 +10,20 @@ import (
 	"time"
 
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/gateway"
+	"github.com/joao-fontenele/orderflow-otel-demo/internal/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func main() {
+	ctx := context.Background()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	shutdownTracer, err := telemetry.InitTracerProvider(ctx, "gateway", "0.1.0")
+	if err != nil {
+		logger.Error("failed to initialize tracer", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = shutdownTracer(ctx) }()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -33,7 +43,8 @@ func main() {
 	}
 
 	httpClient := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:   10 * time.Second,
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
 	ordersProxy := gateway.NewServiceProxy(ordersServiceURL, httpClient)
@@ -41,18 +52,25 @@ func main() {
 	handler := gateway.NewHandler(ordersProxy, inventoryProxy, logger)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /orders", handler.HandleOrders)
-	mux.HandleFunc("POST /orders", handler.HandleOrders)
-	mux.HandleFunc("GET /orders/{id}", handler.HandleOrders)
-	mux.HandleFunc("PATCH /orders/{id}/status", handler.HandleOrders)
-	mux.HandleFunc("GET /inventory/stock", handler.HandleInventory)
-	mux.HandleFunc("GET /inventory/stock/{itemId}", handler.HandleInventory)
-	mux.HandleFunc("POST /inventory/stock/{itemId}/reserve", handler.HandleInventory)
-	mux.HandleFunc("POST /inventory/stock/{itemId}/release", handler.HandleInventory)
+	mux.HandleFunc("GET /orders", telemetry.WithHTTPRoute(handler.HandleOrders))
+	mux.HandleFunc("POST /orders", telemetry.WithHTTPRoute(handler.HandleOrders))
+	mux.HandleFunc("GET /orders/{id}", telemetry.WithHTTPRoute(handler.HandleOrders))
+	mux.HandleFunc("PATCH /orders/{id}/status", telemetry.WithHTTPRoute(handler.HandleOrders))
+	mux.HandleFunc("GET /inventory/stock", telemetry.WithHTTPRoute(handler.HandleInventory))
+	mux.HandleFunc("GET /inventory/stock/{itemId}", telemetry.WithHTTPRoute(handler.HandleInventory))
+	mux.HandleFunc("POST /inventory/stock/{itemId}/reserve", telemetry.WithHTTPRoute(handler.HandleInventory))
+	mux.HandleFunc("POST /inventory/stock/{itemId}/release", telemetry.WithHTTPRoute(handler.HandleInventory))
 
 	server := &http.Server{
-		Addr:         ":" + port,
-		Handler:      mux,
+		Addr: ":" + port,
+		Handler: otelhttp.NewHandler(mux, "gateway",
+			otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+				if r.Pattern != "" {
+					return r.Pattern
+				}
+				return r.Method + " " + r.URL.Path
+			}),
+		),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

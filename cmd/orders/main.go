@@ -12,13 +12,23 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/messaging"
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/orders"
+	"github.com/joao-fontenele/orderflow-otel-demo/internal/telemetry"
 )
 
 func main() {
+	ctx := context.Background()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	shutdownTracer, err := telemetry.InitTracerProvider(ctx, "orders", "0.1.0")
+	if err != nil {
+		logger.Error("failed to initialize tracer", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = shutdownTracer(ctx) }()
 
 	postgresURL := os.Getenv("POSTGRES_URL")
 	if postgresURL == "" {
@@ -55,10 +65,10 @@ func main() {
 	handler := orders.NewHandler(repo, producer, logger)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /orders", handler.HandleList)
-	mux.HandleFunc("POST /orders", handler.HandleCreate)
-	mux.HandleFunc("GET /orders/{id}", handler.HandleGet)
-	mux.HandleFunc("PATCH /orders/{id}/status", handler.HandleUpdateStatus)
+	mux.HandleFunc("GET /orders", telemetry.WithHTTPRoute(handler.HandleList))
+	mux.HandleFunc("POST /orders", telemetry.WithHTTPRoute(handler.HandleCreate))
+	mux.HandleFunc("GET /orders/{id}", telemetry.WithHTTPRoute(handler.HandleGet))
+	mux.HandleFunc("PATCH /orders/{id}/status", telemetry.WithHTTPRoute(handler.HandleUpdateStatus))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -66,8 +76,15 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr:         ":" + port,
-		Handler:      mux,
+		Addr: ":" + port,
+		Handler: otelhttp.NewHandler(mux, "orders",
+			otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+				if r.Pattern != "" {
+					return r.Pattern
+				}
+				return r.Method + " " + r.URL.Path
+			}),
+		),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
