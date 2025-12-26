@@ -48,8 +48,14 @@ for id in ITEM-001 ITEM-002 ITEM-003; do
 done
 
 echo ""
-echo "Listing recent orders..."
+echo "Listing recent orders (optimized batch query)..."
 curl -s "$GATEWAY_URL/orders" | head -c 500
 echo ""
+
+echo ""
+echo "Listing recent orders (N+1 query - intentionally slow)..."
+curl -s "$GATEWAY_URL/orders-nplus1" | head -c 500
+echo ""
+
 echo ""
 echo "Traffic generation complete!"

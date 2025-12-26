@@ -38,6 +38,7 @@ services:
       POSTGRES_URL: postgres://orderflow:orderflow@postgres:5432/orderflow?sslmode=disable
       KAFKA_BROKERS: kafka:9092
       OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_SEMCONV_STABILITY_OPT_IN: database
     ports:
       - "8081:8081"
     depends_on:
@@ -59,6 +60,7 @@ services:
       PORT: "8082"
       POSTGRES_URL: postgres://orderflow:orderflow@postgres:5432/orderflow?sslmode=disable
       OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_SEMCONV_STABILITY_OPT_IN: database
     depends_on:
       postgres:
         condition: service_healthy

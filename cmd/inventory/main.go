@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"net/http"
 	"os"
@@ -34,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := sql.Open("postgres", postgresURL)
+	db, err := telemetry.OpenDB("postgres", postgresURL)
 	if err != nil {
 		logger.Error("failed to open database connection", "error", err)
 		os.Exit(1)
