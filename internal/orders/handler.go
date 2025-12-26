@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/domain"
@@ -73,7 +72,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	id := extractOrderID(r.URL.Path)
+	id := r.PathValue("id")
 	if id == "" {
 		h.writeError(w, http.StatusBadRequest, "missing order id")
 		return
@@ -100,7 +99,7 @@ type updateStatusRequest struct {
 }
 
 func (h *Handler) HandleUpdateStatus(w http.ResponseWriter, r *http.Request) {
-	id := extractOrderID(r.URL.Path)
+	id := r.PathValue("id")
 	if id == "" {
 		h.writeError(w, http.StatusBadRequest, "missing order id")
 		return
@@ -150,12 +149,4 @@ func (h *Handler) writeJSON(w http.ResponseWriter, status int, data any) {
 
 func (h *Handler) writeError(w http.ResponseWriter, status int, message string) {
 	h.writeJSON(w, status, map[string]string{"error": message})
-}
-
-func extractOrderID(path string) string {
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 2 && parts[0] == "orders" {
-		return parts[1]
-	}
-	return ""
 }

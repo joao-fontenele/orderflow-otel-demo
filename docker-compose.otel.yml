@@ -3,8 +3,6 @@ services:
     image: jaegertracing/jaeger:2.13.0
     ports:
       - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
 
@@ -18,8 +16,6 @@ services:
       - "8889:8889"
     depends_on:
       - jaeger
-    profiles:
-      - collector
 
   prometheus:
     image: prom/prometheus:v3.8.0

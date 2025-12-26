@@ -41,9 +41,14 @@ func main() {
 	handler := gateway.NewHandler(ordersProxy, inventoryProxy, logger)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/orders", handler.HandleOrders)
-	mux.HandleFunc("/orders/", handler.HandleOrders)
-	mux.HandleFunc("/inventory/", handler.HandleInventory)
+	mux.HandleFunc("GET /orders", handler.HandleOrders)
+	mux.HandleFunc("POST /orders", handler.HandleOrders)
+	mux.HandleFunc("GET /orders/{id}", handler.HandleOrders)
+	mux.HandleFunc("PATCH /orders/{id}/status", handler.HandleOrders)
+	mux.HandleFunc("GET /inventory/stock", handler.HandleInventory)
+	mux.HandleFunc("GET /inventory/stock/{itemId}", handler.HandleInventory)
+	mux.HandleFunc("POST /inventory/stock/{itemId}/reserve", handler.HandleInventory)
+	mux.HandleFunc("POST /inventory/stock/{itemId}/release", handler.HandleInventory)
 
 	server := &http.Server{
 		Addr:         ":" + port,

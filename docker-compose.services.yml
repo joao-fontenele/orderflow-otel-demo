@@ -23,6 +23,7 @@ services:
       PORT: "8080"
       ORDERS_SERVICE_URL: http://orders:8081
       INVENTORY_SERVICE_URL: http://inventory:8082
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
     depends_on:
       - orders
       - inventory
@@ -36,6 +37,7 @@ services:
       PORT: "8081"
       POSTGRES_URL: postgres://orderflow:orderflow@postgres:5432/orderflow?sslmode=disable
       KAFKA_BROKERS: kafka:9092
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
     ports:
       - "8081:8081"
     depends_on:
@@ -56,6 +58,7 @@ services:
     environment:
       PORT: "8082"
       POSTGRES_URL: postgres://orderflow:orderflow@postgres:5432/orderflow?sslmode=disable
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
     depends_on:
       postgres:
         condition: service_healthy

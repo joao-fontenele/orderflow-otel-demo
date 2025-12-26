@@ -27,7 +27,7 @@ func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleInventory(w http.ResponseWriter, r *http.Request) {
-	path := strings.Replace(r.URL.Path, "/inventory/", "/stock/", 1)
+	path := strings.TrimPrefix(r.URL.Path, "/inventory")
 	h.proxyRequest(w, r, h.inventoryProxy, path)
 }
 

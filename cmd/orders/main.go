@@ -55,29 +55,10 @@ func main() {
 	handler := orders.NewHandler(repo, producer, logger)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/orders", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handler.HandleList(w, r)
-		case http.MethodPost:
-			handler.HandleCreate(w, r)
-		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-	mux.HandleFunc("/orders/", func(w http.ResponseWriter, r *http.Request) {
-		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-		hasStatusSuffix := len(pathParts) == 3 && pathParts[2] == "status"
-
-		switch {
-		case r.Method == http.MethodGet && !hasStatusSuffix:
-			handler.HandleGet(w, r)
-		case r.Method == http.MethodPatch && hasStatusSuffix:
-			handler.HandleUpdateStatus(w, r)
-		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	mux.HandleFunc("GET /orders", handler.HandleList)
+	mux.HandleFunc("POST /orders", handler.HandleCreate)
+	mux.HandleFunc("GET /orders/{id}", handler.HandleGet)
+	mux.HandleFunc("PATCH /orders/{id}/status", handler.HandleUpdateStatus)
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -3,10 +3,9 @@ set -euo pipefail
 
 GATEWAY_URL="${GATEWAY_URL:-http://localhost:8080}"
 ORDER_COUNT="${ORDER_COUNT:-10}"
-SLEEP_SECONDS="${SLEEP_SECONDS:-1}"
 
 echo "Generating traffic against $GATEWAY_URL"
-echo "Creating $ORDER_COUNT orders with ${SLEEP_SECONDS}s delay between requests"
+echo "Creating $ORDER_COUNT orders"
 echo ""
 
 for i in $(seq 1 "$ORDER_COUNT"); do
@@ -37,8 +36,6 @@ EOF
   else
     echo "  -> Failed (HTTP $http_code): $body"
   fi
-
-  sleep "$SLEEP_SECONDS"
 done
 
 echo ""
@@ -46,7 +43,7 @@ echo "Checking inventory levels..."
 
 for id in ITEM-001 ITEM-002 ITEM-003; do
   echo "Inventory for $id:"
-  curl -s "$GATEWAY_URL/inventory/$id" 2>&1 || echo "  -> Failed to fetch"
+  curl -s "$GATEWAY_URL/inventory/stock/$id" 2>&1 || echo "  -> Failed to fetch"
   echo ""
 done
 

@@ -1,4 +1,4 @@
-.PHONY: build run-gateway run-orders run-inventory run-worker run-email test test-integration lint format vulncheck clean migrate-up migrate-down migrate-version migrate-create docker-up docker-up-all docker-down docker-logs docker-build otel-up otel-down all-up all-down
+.PHONY: build dev run-gateway run-orders run-inventory run-worker run-email test test-integration lint format vulncheck clean migrate-up migrate-down migrate-version migrate-create docker-up docker-up-all docker-down docker-logs docker-build otel-up otel-down all-up all-down
 
 GOLANGCI_LINT_VERSION := v2.7.2
 GOLANGCI_LINT := ./bin/golangci-lint
@@ -13,6 +13,9 @@ build:
 	go build -o ./bin/worker ./cmd/worker
 	go build -o ./bin/email ./cmd/email
 	go build -o ./bin/migrate ./cmd/migrate
+
+dev:
+	./scripts/dev.sh
 
 run-gateway:
 	go tool reflex -r '\.go$$' -s -- go run ./cmd/gateway

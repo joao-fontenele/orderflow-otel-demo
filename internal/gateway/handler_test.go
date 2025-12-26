@@ -102,7 +102,7 @@ func TestHandler_HandleOrders(t *testing.T) {
 }
 
 func TestHandler_HandleInventory(t *testing.T) {
-	t.Run("maps /inventory/{id} to /stock/{id}", func(t *testing.T) {
+	t.Run("strips /inventory prefix and forwards to inventory service", func(t *testing.T) {
 		inventoryServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path != "/stock/item-123" {
 				t.Errorf("expected /stock/item-123, got %s", r.URL.Path)
@@ -119,7 +119,7 @@ func TestHandler_HandleInventory(t *testing.T) {
 			slog.New(slog.NewTextHandler(io.Discard, nil)),
 		)
 
-		req := httptest.NewRequest(http.MethodGet, "/inventory/item-123", nil)
+		req := httptest.NewRequest(http.MethodGet, "/inventory/stock/item-123", nil)
 		rec := httptest.NewRecorder()
 
 		handler.HandleInventory(rec, req)
@@ -143,7 +143,7 @@ func TestHandler_HandleInventory(t *testing.T) {
 			slog.New(slog.NewTextHandler(io.Discard, nil)),
 		)
 
-		req := httptest.NewRequest(http.MethodGet, "/inventory/unknown", nil)
+		req := httptest.NewRequest(http.MethodGet, "/inventory/stock/unknown", nil)
 		rec := httptest.NewRecorder()
 
 		handler.HandleInventory(rec, req)
@@ -160,7 +160,7 @@ func TestHandler_HandleInventory(t *testing.T) {
 			slog.New(slog.NewTextHandler(io.Discard, nil)),
 		)
 
-		req := httptest.NewRequest(http.MethodGet, "/inventory/item-123", nil)
+		req := httptest.NewRequest(http.MethodGet, "/inventory/stock/item-123", nil)
 		rec := httptest.NewRecorder()
 
 		handler.HandleInventory(rec, req)
