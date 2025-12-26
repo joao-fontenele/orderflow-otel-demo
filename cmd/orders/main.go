@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"net/http"
 	"os"
@@ -36,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := sql.Open("postgres", postgresURL)
+	db, err := telemetry.OpenDB("postgres", postgresURL)
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		os.Exit(1)
@@ -66,6 +65,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /orders", telemetry.WithHTTPRoute(handler.HandleList))
+	mux.HandleFunc("GET /orders-nplus1", telemetry.WithHTTPRoute(handler.HandleListNPlus1))
 	mux.HandleFunc("POST /orders", telemetry.WithHTTPRoute(handler.HandleCreate))
 	mux.HandleFunc("GET /orders/{id}", telemetry.WithHTTPRoute(handler.HandleGet))
 	mux.HandleFunc("PATCH /orders/{id}/status", telemetry.WithHTTPRoute(handler.HandleUpdateStatus))

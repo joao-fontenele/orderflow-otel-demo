@@ -90,21 +90,23 @@ GATEWAY_URL=http://localhost:8080 ORDER_COUNT=20 SLEEP_SECONDS=2 ./scripts/gener
 
 ### Gateway Endpoints (Public)
 
-| Method | Endpoint              | Description          |
-|--------|-----------------------|----------------------|
-| GET    | /orders               | List all orders      |
-| GET    | /orders/{id}          | Get order by ID      |
-| POST   | /orders               | Create a new order   |
-| GET    | /inventory/{itemId}   | Get inventory level  |
+| Method | Endpoint              | Description                              |
+|--------|-----------------------|------------------------------------------|
+| GET    | /orders               | List all orders                          |
+| GET    | /orders-nplus1        | List all orders (N+1 query demo)         |
+| GET    | /orders/{id}          | Get order by ID                          |
+| POST   | /orders               | Create a new order                       |
+| GET    | /inventory/{itemId}   | Get inventory level                      |
 
 ### Orders Service (Internal)
 
-| Method | Endpoint              | Description                        |
-|--------|-----------------------|------------------------------------|
-| GET    | /orders               | List all orders                    |
-| GET    | /orders/{id}          | Get order by ID                    |
-| POST   | /orders               | Create order (publishes to Kafka)  |
-| PATCH  | /orders/{id}/status   | Update order status                |
+| Method | Endpoint              | Description                              |
+|--------|-----------------------|------------------------------------------|
+| GET    | /orders               | List all orders                          |
+| GET    | /orders-nplus1        | List all orders (N+1 query for tracing)  |
+| GET    | /orders/{id}          | Get order by ID                          |
+| POST   | /orders               | Create order (publishes to Kafka)        |
+| PATCH  | /orders/{id}/status   | Update order status                      |
 
 ### Inventory Service (Internal)
 

@@ -173,3 +173,56 @@ func (r *OrderRepository) List(ctx context.Context) ([]domain.Order, error) {
 
 	return orders, nil
 }
+
+func (r *OrderRepository) ListNPlus1(ctx context.Context) ([]domain.Order, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, customer_id, status, total, created_at
+		FROM orders
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var orders []domain.Order
+	for rows.Next() {
+		var order domain.Order
+		if err := rows.Scan(&order.ID, &order.CustomerID, &order.Status, &order.Total, &order.CreatedAt); err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for i := range orders {
+		itemRows, err := r.db.QueryContext(ctx, `
+			SELECT item_id, quantity, price
+			FROM order_items
+			WHERE order_id = $1
+		`, orders[i].ID)
+		if err != nil {
+			return nil, err
+		}
+
+		for itemRows.Next() {
+			var item domain.OrderItem
+			if err := itemRows.Scan(&item.ItemID, &item.Quantity, &item.Price); err != nil {
+				_ = itemRows.Close()
+				return nil, err
+			}
+			orders[i].Items = append(orders[i].Items, item)
+		}
+
+		if err := itemRows.Err(); err != nil {
+			_ = itemRows.Close()
+			return nil, err
+		}
+		_ = itemRows.Close()
+	}
+
+	return orders, nil
+}

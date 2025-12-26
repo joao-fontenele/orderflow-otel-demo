@@ -53,6 +53,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /orders", telemetry.WithHTTPRoute(handler.HandleOrders))
+	mux.HandleFunc("GET /orders-nplus1", telemetry.WithHTTPRoute(handler.HandleOrders))
 	mux.HandleFunc("POST /orders", telemetry.WithHTTPRoute(handler.HandleOrders))
 	mux.HandleFunc("GET /orders/{id}", telemetry.WithHTTPRoute(handler.HandleOrders))
 	mux.HandleFunc("PATCH /orders/{id}/status", telemetry.WithHTTPRoute(handler.HandleOrders))

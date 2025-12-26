@@ -139,6 +139,18 @@ func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusOK, orders)
 }
 
+func (h *Handler) HandleListNPlus1(w http.ResponseWriter, r *http.Request) {
+	orders, err := h.repo.ListNPlus1(r.Context())
+	if err != nil {
+		h.logger.Error("failed to list orders (n+1)", "error", err)
+		h.writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	h.logger.Info("orders listed (n+1)", "count", len(orders))
+	h.writeJSON(w, http.StatusOK, orders)
+}
+
 func (h *Handler) writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
