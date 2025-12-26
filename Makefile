@@ -1,4 +1,4 @@
-.PHONY: build dev run-gateway run-orders run-inventory run-worker run-email test test-integration lint format vulncheck clean migrate-up migrate-down migrate-version migrate-create docker-up docker-up-all docker-down docker-logs docker-build otel-up otel-down all-up all-down
+.PHONY: build dev run-gateway run-orders run-inventory run-worker run-email test test-integration lint format vulncheck clean update-libs migrate-up migrate-down migrate-version migrate-create docker-up docker-up-all docker-down docker-logs docker-build otel-up otel-down all-up all-down
 
 GOLANGCI_LINT_VERSION := v2.7.2
 GOLANGCI_LINT := ./bin/golangci-lint
@@ -54,6 +54,9 @@ format:
 
 clean:
 	rm -rf ./bin
+
+update-libs:
+	go get -u $$(go list -m -f '{{if and .Update (not .Indirect) (not .Main)}}{{.Path}}{{end}}' all)
 
 POSTGRES_URL ?= postgres://orderflow:orderflow@localhost:5432/orderflow?sslmode=disable
 
