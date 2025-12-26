@@ -56,7 +56,10 @@ clean:
 	rm -rf ./bin
 
 update-libs:
+	go get -u tool
+	go mod tidy
 	go get -u $$(go list -m -f '{{if and .Update (not .Indirect) (not .Main)}}{{.Path}}{{end}}' all)
+	go mod tidy
 
 POSTGRES_URL ?= postgres://orderflow:orderflow@localhost:5432/orderflow?sslmode=disable
 
