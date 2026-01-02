@@ -61,16 +61,16 @@ update-libs:
 	go get -u $$(go list -m -f '{{if and .Update (not .Indirect) (not .Main)}}{{.Path}}{{end}}' all)
 	go mod tidy
 
-POSTGRES_URL ?= postgres://orderflow:orderflow@localhost:5432/orderflow?sslmode=disable
+POSTGRES_MIGRATE_URL ?= postgres://orderflow:orderflow@localhost:5432/orderflow?sslmode=disable
 
 migrate-up:
-	POSTGRES_URL=$(POSTGRES_URL) go run ./cmd/migrate up
+	POSTGRES_URL=$(POSTGRES_MIGRATE_URL) go run ./cmd/migrate up
 
 migrate-down:
-	POSTGRES_URL=$(POSTGRES_URL) go run ./cmd/migrate down
+	POSTGRES_URL=$(POSTGRES_MIGRATE_URL) go run ./cmd/migrate down
 
 migrate-version:
-	POSTGRES_URL=$(POSTGRES_URL) go run ./cmd/migrate version
+	POSTGRES_URL=$(POSTGRES_MIGRATE_URL) go run ./cmd/migrate version
 
 migrate-create:
 ifndef name
