@@ -74,6 +74,7 @@ services:
         SERVICE: email
     environment:
       PORT: "8084"
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
 
   worker:
     build:
@@ -85,6 +86,7 @@ services:
       EMAIL_SERVICE_URL: http://email:8084
       ORDERS_SERVICE_URL: http://orders:8081
       INVENTORY_SERVICE_URL: http://inventory:8082
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
     depends_on:
       kafka:
         condition: service_healthy

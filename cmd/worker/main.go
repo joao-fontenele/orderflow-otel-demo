@@ -10,12 +10,23 @@ import (
 	"syscall"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/messaging"
+	"github.com/joao-fontenele/orderflow-otel-demo/internal/telemetry"
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/worker"
 )
 
 func main() {
+	ctx := context.Background()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	shutdownTracer, err := telemetry.InitTracerProvider(ctx, "worker", "0.1.0")
+	if err != nil {
+		logger.Error("failed to initialize tracer", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = shutdownTracer(ctx) }()
 
 	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
 	if kafkaBrokers == "" {
@@ -46,12 +57,13 @@ func main() {
 	defer func() { _ = consumer.Close() }()
 
 	httpClient := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:   10 * time.Second,
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
 	notificationHandler := worker.NewNotificationHandler(emailServiceURL, ordersServiceURL, inventoryServiceURL, httpClient, logger)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	go func() {
