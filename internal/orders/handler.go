@@ -2,26 +2,38 @@ package orders
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/domain"
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/messaging"
 )
 
 type Handler struct {
-	repo     *OrderRepository
-	producer *messaging.Producer
-	logger   *slog.Logger
+	repo          *OrderRepository
+	producer      *messaging.Producer
+	logger        *slog.Logger
+	ordersCreated metric.Int64Counter
 }
 
-func NewHandler(repo *OrderRepository, producer *messaging.Producer, logger *slog.Logger) *Handler {
-	return &Handler{
-		repo:     repo,
-		producer: producer,
-		logger:   logger,
+func NewHandler(repo *OrderRepository, producer *messaging.Producer, logger *slog.Logger) (*Handler, error) {
+	meter := otel.Meter("orders")
+	ordersCreated, err := meter.Int64Counter("order.created", metric.WithDescription("The number of orders created"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create order.created counter: %w", err)
 	}
+
+	return &Handler{
+		repo:          repo,
+		producer:      producer,
+		logger:        logger,
+		ordersCreated: ordersCreated,
+	}, nil
 }
 
 type createOrderRequest struct {
@@ -67,6 +79,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	h.ordersCreated.Add(r.Context(), 1)
 	h.logger.Info("order created", "order_id", order.ID, "customer_id", order.CustomerID)
 	h.writeJSON(w, http.StatusCreated, order)
 }
