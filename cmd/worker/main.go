@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
 
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/messaging"
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/telemetry"
@@ -27,6 +28,17 @@ func main() {
 		os.Exit(1)
 	}
 	defer func() { _ = shutdownTracer(ctx) }()
+
+	metricsHandler, shutdownMeter, err := telemetry.InitMeterProvider("worker", "0.1.0")
+	if err != nil {
+		logger.Error("failed to initialize metrics", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = shutdownMeter(ctx) }()
+
+	if err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second)); err != nil {
+		logger.Error("failed to start runtime metrics", "error", err)
+	}
 
 	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
 	if kafkaBrokers == "" {
@@ -63,6 +75,27 @@ func main() {
 
 	notificationHandler := worker.NewNotificationHandler(emailServiceURL, ordersServiceURL, inventoryServiceURL, httpClient, logger)
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8083"
+	}
+	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", metricsHandler)
+
+	metricsServer := &http.Server{
+		Addr:         ":" + port,
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	go func() {
+		logger.Info("starting metrics server", "port", port)
+		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("metrics server error", "error", err)
+		}
+	}()
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -71,6 +104,13 @@ func main() {
 		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 		<-stop
 		logger.Info("shutting down")
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+			logger.Error("metrics server shutdown error", "error", err)
+		}
+
 		cancel()
 	}()
 

@@ -12,6 +12,7 @@ import (
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/gateway"
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
 )
 
 func main() {
@@ -24,6 +25,17 @@ func main() {
 		os.Exit(1)
 	}
 	defer func() { _ = shutdownTracer(ctx) }()
+
+	metricsHandler, shutdownMeter, err := telemetry.InitMeterProvider("gateway", "0.1.0")
+	if err != nil {
+		logger.Error("failed to initialize metrics", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = shutdownMeter(ctx) }()
+
+	if err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second)); err != nil {
+		logger.Error("failed to start runtime metrics", "error", err)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -52,6 +64,8 @@ func main() {
 	handler := gateway.NewHandler(ordersProxy, inventoryProxy, logger)
 
 	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", metricsHandler)
+
 	mux.HandleFunc("GET /orders", telemetry.WithHTTPRoute(handler.HandleOrders))
 	mux.HandleFunc("GET /orders-nplus1", telemetry.WithHTTPRoute(handler.HandleOrders))
 	mux.HandleFunc("POST /orders", telemetry.WithHTTPRoute(handler.HandleOrders))

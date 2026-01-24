@@ -35,7 +35,10 @@ func TestOrderCreationFlow(t *testing.T) {
 
 	repo := orders.NewOrderRepository(ordersDB)
 	logger := slog.Default()
-	handler := orders.NewHandler(repo, nil, logger)
+	handler, err := orders.NewHandler(repo, nil, logger)
+	if err != nil {
+		t.Fatalf("failed to create handler: %v", err)
+	}
 
 	reqBody := `{"customer_id": "test-customer-1", "items": [{"item_id": "ITEM-001", "quantity": 2, "price": 1000}]}`
 	req := httptest.NewRequest(http.MethodPost, "/orders", strings.NewReader(reqBody))
@@ -157,7 +160,10 @@ func TestListOrders(t *testing.T) {
 
 	repo := orders.NewOrderRepository(ordersDB)
 	logger := slog.Default()
-	handler := orders.NewHandler(repo, nil, logger)
+	handler, err := orders.NewHandler(repo, nil, logger)
+	if err != nil {
+		t.Fatalf("failed to create handler: %v", err)
+	}
 
 	for i := 1; i <= 3; i++ {
 		order := &domain.Order{
@@ -258,7 +264,10 @@ func TestOrderFlowWithSufficientStock(t *testing.T) {
 	defer func() { _ = ordersDB.Close() }()
 
 	ordersRepo := orders.NewOrderRepository(ordersDB)
-	ordersHandler := orders.NewHandler(ordersRepo, nil, logger)
+	ordersHandler, err := orders.NewHandler(ordersRepo, nil, logger)
+	if err != nil {
+		t.Fatalf("failed to create orders handler: %v", err)
+	}
 	ordersMux := http.NewServeMux()
 	ordersMux.HandleFunc("POST /orders", ordersHandler.HandleCreate)
 	ordersMux.HandleFunc("GET /orders/{id}", ordersHandler.HandleGet)
@@ -384,7 +393,10 @@ func TestOrderFlowWithInsufficientStock(t *testing.T) {
 	defer func() { _ = ordersDB.Close() }()
 
 	ordersRepo := orders.NewOrderRepository(ordersDB)
-	ordersHandler := orders.NewHandler(ordersRepo, nil, logger)
+	ordersHandler, err := orders.NewHandler(ordersRepo, nil, logger)
+	if err != nil {
+		t.Fatalf("failed to create orders handler: %v", err)
+	}
 	ordersMux := http.NewServeMux()
 	ordersMux.HandleFunc("POST /orders", ordersHandler.HandleCreate)
 	ordersMux.HandleFunc("GET /orders/{id}", ordersHandler.HandleGet)
@@ -510,7 +522,10 @@ func TestOrderFlowWithPartialStockRollback(t *testing.T) {
 	defer func() { _ = ordersDB.Close() }()
 
 	ordersRepo := orders.NewOrderRepository(ordersDB)
-	ordersHandler := orders.NewHandler(ordersRepo, nil, logger)
+	ordersHandler, err := orders.NewHandler(ordersRepo, nil, logger)
+	if err != nil {
+		t.Fatalf("failed to create orders handler: %v", err)
+	}
 	ordersMux := http.NewServeMux()
 	ordersMux.HandleFunc("POST /orders", ordersHandler.HandleCreate)
 	ordersMux.HandleFunc("GET /orders/{id}", ordersHandler.HandleGet)

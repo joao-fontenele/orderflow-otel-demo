@@ -81,7 +81,10 @@ services:
       context: .
       args:
         SERVICE: worker
+    ports:
+      - "8083:8083"
     environment:
+      PORT: "8083"
       KAFKA_BROKERS: kafka:9092
       EMAIL_SERVICE_URL: http://email:8084
       ORDERS_SERVICE_URL: http://orders:8081
