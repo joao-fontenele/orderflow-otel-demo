@@ -12,6 +12,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
 
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/messaging"
 	"github.com/joao-fontenele/orderflow-otel-demo/internal/orders"
@@ -28,6 +29,17 @@ func main() {
 		os.Exit(1)
 	}
 	defer func() { _ = shutdownTracer(ctx) }()
+
+	metricsHandler, shutdownMeter, err := telemetry.InitMeterProvider("orders", "0.1.0")
+	if err != nil {
+		logger.Error("failed to initialize metrics", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = shutdownMeter(ctx) }()
+
+	if err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second)); err != nil {
+		logger.Error("failed to start runtime metrics", "error", err)
+	}
 
 	postgresURL := os.Getenv("POSTGRES_URL")
 	if postgresURL == "" {
@@ -61,9 +73,15 @@ func main() {
 	}
 
 	repo := orders.NewOrderRepository(db)
-	handler := orders.NewHandler(repo, producer, logger)
+	handler, err := orders.NewHandler(repo, producer, logger)
+	if err != nil {
+		logger.Error("failed to create handler", "error", err)
+		os.Exit(1)
+	}
 
 	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", metricsHandler)
+
 	mux.HandleFunc("GET /orders", telemetry.WithHTTPRoute(handler.HandleList))
 	mux.HandleFunc("GET /orders-nplus1", telemetry.WithHTTPRoute(handler.HandleListNPlus1))
 	mux.HandleFunc("POST /orders", telemetry.WithHTTPRoute(handler.HandleCreate))
